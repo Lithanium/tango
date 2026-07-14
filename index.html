@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tango Trainer</title>
+  <meta name="description" content="A daily logic puzzle trainer">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Tango Trainer</h1>
+    <div class="subtitle">Practice for the LinkedIn daily puzzle</div>
+  </header>
+
+  <div class="controls">
+    <select id="difficulty-select">
+      <option value="easy">Easy</option>
+      <option value="medium" selected>Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <button id="new-game-btn">New Game</button>
+    <button id="rules-btn" title="Rules">?</button>
+    <div class="timer-pill" id="timer-display">00:00</div>
+  </div>
+
+  <div id="status-banner"></div>
+
+  <div id="board-container">
+    <div class="loading">Generating...</div>
+  </div>
+
+  <div id="rules-modal" class="modal">
+    <div class="modal-content">
+      <h2>How to Play Tango</h2>
+      <ul>
+        <li><strong>Balance:</strong> Every row and column must contain exactly 3 suns (☀️) and 3 moons (🌙).</li>
+        <li><strong>No Triplet:</strong> No three consecutive identical symbols are allowed in any row or column.</li>
+        <li><strong>Adjacency Markers:</strong> 
+          <br>`=` means the two touching cells must be the <strong>same</strong>.
+          <br>`×` means they must be <strong>opposite</strong>.
+        </li>
+        <li><strong>Uniqueness:</strong> No two rows can be identical; no two columns can be identical.</li>
+      </ul>
+      <p>Use logic (no guessing!) to fill the board.</p>
+      <button id="close-rules-btn" style="margin-top: 1rem;">Got it</button>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
