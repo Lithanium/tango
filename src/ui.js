@@ -1,7 +1,7 @@
 import { SUN, MOON } from './solver.js';
 
 const SUN_SVG = `<svg viewBox="0 0 100 100" class="icon sun-icon"><circle cx="50" cy="50" r="32" fill="#fca11a" stroke="#d57018" stroke-width="6" /></svg>`;
-const MOON_SVG = `<svg viewBox="0 0 100 100" class="icon moon-icon"><g transform="rotate(-20 50 50)"><path d="M 70 18 A 38 34 0 1 0 70 82 A 26 28 0 1 1 70 18 Z" fill="#4f8eea" stroke="#1f5bb7" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" /></g></svg>`;
+const MOON_SVG = `<svg viewBox="0 0 28 28" class="icon moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="Moon"><path d="M8.10583 19.9024C15.2282 18.6466 19.2619 11.9868 17.0757 5.09295C16.8785 4.47115 16.6376 3.86915 16.3574 3.28957C16.3507 3.27584 16.3467 3.26256 16.3446 3.24986C20.5748 4.17473 24.0337 7.5648 24.8316 12.0899C25.8865 18.0727 21.8917 23.778 15.9088 24.8329C11.4675 25.616 7.17692 23.6165 4.82974 20.0826C4.84051 20.0805 4.85231 20.0796 4.86526 20.0804C5.93904 20.1476 7.02621 20.0928 8.10583 19.9024Z" fill="#4a7feb" stroke="#1f5bb7" stroke-width="2" stroke-linejoin="round"/></svg>`;
 
 export class UI {
   constructor(containerId, timerId) {
