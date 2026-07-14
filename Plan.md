@@ -6,16 +6,15 @@ A browser-only (no backend) web app that generates and presents random, uniquely
 
 ## Background
 
-**Tango** is LinkedIn's daily 6×6 logic puzzle. The player fills each cell with a ☀️ (sun) or 🌙 (moon) obeying four rules:
+**Tango** is LinkedIn's daily 6×6 logic puzzle. The player fills each cell with a ☀️ (sun) or 🌙 (moon) obeying three rules:
 
 | Rule | Description |
 |---|---|
 | **Balance** | Every row and column must contain exactly 3 suns and 3 moons. |
 | **No Triplet** | No three consecutive identical symbols in any row or column. |
 | **Adjacency Markers** | `=` means the two touching cells must be the **same** symbol; `×` means they must be **opposite**. |
-| **Uniqueness** | No two rows can be identical; no two columns can be identical. |
 
-Every puzzle has a **unique, deductively reachable** solution.
+Every puzzle has a **unique, deductively reachable** solution, and each cell can be determined using only single-row/column reasoning combined with adjacency markers — no cross-row/column comparison is required.
 
 ---
 

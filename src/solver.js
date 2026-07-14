@@ -93,36 +93,6 @@ export function solve(initialBoard, markers) {
       if (resCol === INVALID) return INVALID;
       if (resCol) changed = true;
     }
-    
-    for (let i = 0; i < SIZE; i++) {
-       const completedRows = [];
-       for (let r = 0; r < SIZE; r++) {
-         if (r !== i && grid[r].every(d => d.length === 1)) {
-           completedRows.push(grid[r].map(d => d[0]).join(''));
-         }
-       }
-       let resRowEnum = enumerateAndIntersect(
-         [0,1,2,3,4,5].map(c => grid[i][c]),
-         completedRows,
-         (c, newDomain) => setDomain(i, c, newDomain)
-       );
-       if (resRowEnum === INVALID) return INVALID;
-       if (resRowEnum) changed = true;
-       
-       const completedCols = [];
-       for (let c = 0; c < SIZE; c++) {
-         if (c !== i && [0,1,2,3,4,5].map(r => grid[r][c]).every(d => d.length === 1)) {
-           completedCols.push([0,1,2,3,4,5].map(r => grid[r][c][0]).join(''));
-         }
-       }
-       let resColEnum = enumerateAndIntersect(
-         [0,1,2,3,4,5].map(r => grid[r][i]),
-         completedCols,
-         (r, newDomain) => setDomain(r, i, newDomain)
-       );
-       if (resColEnum === INVALID) return INVALID;
-       if (resColEnum) changed = true;
-    }
   }
 
   for (let r = 0; r < SIZE; r++) {
@@ -199,56 +169,5 @@ function solveLine(domains, updateCb) {
       }
     }
   }
-  return changed;
-}
-
-function enumerateAndIntersect(domains, completedLines, updateCb) {
-  const validAssignments = [];
-  
-  function isValidPrefix(arr) {
-    let s = 0, m = 0;
-    for (let i = 0; i < arr.length; i++) {
-      if (arr[i] === SUN) s++;
-      else m++;
-      if (i >= 2) {
-        if (arr[i] === arr[i-1] && arr[i] === arr[i-2]) return false;
-      }
-    }
-    if (s > 3 || m > 3) return false;
-    return true;
-  }
-  
-  function backtrack(idx, current) {
-    if (!isValidPrefix(current)) return;
-    if (idx === 6) {
-      const str = current.join('');
-      if (!completedLines.includes(str)) {
-        validAssignments.push([...current]);
-      }
-      return;
-    }
-    
-    for (const val of domains[idx]) {
-      current.push(val);
-      backtrack(idx + 1, current);
-      current.pop();
-    }
-  }
-  
-  backtrack(0, []);
-  
-  if (validAssignments.length === 0) return INVALID;
-  
-  let changed = false;
-  for (let i = 0; i < 6; i++) {
-    const possibleValues = new Set(validAssignments.map(arr => arr[i]));
-    const newDomain = Array.from(possibleValues);
-    if (newDomain.length < domains[i].length) {
-      let res = updateCb(i, newDomain);
-      if (res === INVALID) return INVALID;
-      changed = true;
-    }
-  }
-  
   return changed;
 }

@@ -11,7 +11,7 @@ function shuffle(array) {
 
 export function generateBoard(difficulty = 'medium') {
   let solution;
-  let maxRetries = 20; 
+  let maxRetries = 50;
   let markers;
   let initialBoard;
 
@@ -33,7 +33,7 @@ export function generateBoard(difficulty = 'medium') {
     let targetPrefilled = 0;
     if (difficulty === 'easy') targetPrefilled = 4;
     else if (difficulty === 'medium') targetPrefilled = 2;
-    else targetPrefilled = 0; // hard
+    else targetPrefilled = 1; // hard — must be >= 1, else sun/moon swap breaks uniqueness
     
     initialBoard = Array(SIZE).fill(null).map(() => Array(SIZE).fill(null));
     
@@ -103,21 +103,6 @@ function generateCompleteBoard() {
       if (i >= 2 && grid[i][c] === grid[i-1][c] && grid[i][c] === grid[i-2][c]) valid = false;
     }
     if (suns > 3 || moons > 3) valid = false;
-    
-    if (valid && c === SIZE - 1) {
-      const str = grid[r].join('');
-      for (let i = 0; i < r; i++) {
-        if (grid[i].join('') === str) valid = false;
-      }
-    }
-    
-    if (valid && r === SIZE - 1) {
-      const colStr = Array(SIZE).fill(null).map((_, i) => grid[i][c]).join('');
-      for (let i = 0; i < c; i++) {
-        const prevColStr = Array(SIZE).fill(null).map((_, j) => grid[j][i]).join('');
-        if (colStr === prevColStr) valid = false;
-      }
-    }
     
     grid[r][c] = null;
     return valid;
