@@ -1,9 +1,9 @@
 :root {
-  --bg-color: #0a0e1a;
-  --panel-bg: rgba(255, 255, 255, 0.05);
-  --panel-border: rgba(255, 255, 255, 0.15);
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
+  --bg-color: #ffffff;
+  --panel-bg: rgba(0, 0, 0, 0.03);
+  --panel-border: rgba(0, 0, 0, 0.15);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
   --accent: #2dd4bf;
   --cell-size: 60px;
   --marker-size: 16px;
@@ -75,11 +75,16 @@ button, select {
   cursor: pointer;
   outline: none;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
-button:hover, select:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--accent);
+@media (hover: hover) {
+  button:hover, select:hover {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: var(--accent);
+  }
 }
 
 .timer-pill {
@@ -134,10 +139,13 @@ button:hover, select:hover {
   transition: background 0.1s;
   border-right: 1px solid var(--grid-border);
   border-bottom: 1px solid var(--grid-border);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.cell:hover:not(.fixed) {
-  background: #f8f5f2;
+@media (hover: hover) {
+  .cell:hover:not(.fixed) {
+    background: #f8f5f2;
+  }
 }
 
 .cell.fixed {
@@ -148,6 +156,16 @@ button:hover, select:hover {
 .icon {
   width: 60%;
   height: 60%;
+}
+
+.sun-icon {
+  width: 70%;
+  height: 70%;
+}
+
+.moon-icon {
+  width: 52%;
+  height: 52%;
 }
 
 .marker {
