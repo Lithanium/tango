@@ -64,20 +64,39 @@ export function generateBoard(difficulty = 'medium') {
     }
     
     if (isSolvable) {
-      // Optimize markers: remove redundant ones
-      for (let i = markers.length - 1; i >= 0; i--) {
-        const temp = markers[i];
-        markers.splice(i, 1);
-        let testBoard = initialBoard.map(row => [...row]);
-        if (solve(testBoard, markers) !== SOLVED) {
-          markers.splice(i, 0, temp); // put it back
+      // Optimize markers: remove redundant ones.
+      // A single greedy pass finds a local minimum that depends on order,
+      // so for hard mode we run multiple shuffled passes and keep the
+      // sparsest result to make the board harder.
+      const minimizePasses = difficulty === 'hard' ? 8 : 1;
+      let bestMarkers = minimizeMarkers(markers, initialBoard);
+      for (let p = 1; p < minimizePasses; p++) {
+        const shuffled = [...markers];
+        shuffle(shuffled);
+        const candidate = minimizeMarkers(shuffled, initialBoard);
+        if (candidate.length < bestMarkers.length) {
+          bestMarkers = candidate;
         }
       }
+      markers = bestMarkers;
       return { initialBoard, solution, markers };
     }
   }
   
   throw new Error("Failed to generate a solvable board");
+}
+
+function minimizeMarkers(markers, initialBoard) {
+  const result = [...markers];
+  for (let i = result.length - 1; i >= 0; i--) {
+    const temp = result[i];
+    result.splice(i, 1);
+    const testBoard = initialBoard.map(row => [...row]);
+    if (solve(testBoard, result) !== SOLVED) {
+      result.splice(i, 0, temp); // put it back
+    }
+  }
+  return result;
 }
 
 function generateCompleteBoard() {
