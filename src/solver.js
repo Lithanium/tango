@@ -1,29 +1,28 @@
-export const SUN = 'S';
-export const MOON = 'M';
-export const EMPTY = null;
+import {
+  SIZE,
+  HALF,
+  SUN,
+  MOON,
+  MARKER_EQUAL,
+  SOLVED,
+  STUCK,
+  INVALID,
+  opposite,
+} from './constants.js';
+import { mapGrid, forEachCell, everyCell } from './grid.js';
 
-export const MARKER_EQUAL = '=';
-export const MARKER_OPPOSITE = 'x';
+const INDICES = [...Array(SIZE).keys()];
 
-export const SOLVED = 'SOLVED';
-export const STUCK = 'STUCK';
-export const INVALID = 'INVALID';
+// [partner offset, target offset]: a singleton next to an identical partner
+// forbids the same value on the third cell of the triplet.
+const TRIPLET_RULES = [[1, 2], [-1, -2], [2, 1]];
 
-const SIZE = 6;
+const inLine = i => i >= 0 && i < SIZE;
 
 // returns 'SOLVED', 'STUCK', or 'INVALID'
 // modifies initialBoard in place if it solves it
 export function solve(initialBoard, markers) {
-  let grid = [];
-  for (let r = 0; r < SIZE; r++) {
-    let row = [];
-    for (let c = 0; c < SIZE; c++) {
-      if (initialBoard[r][c] === SUN) row.push([SUN]);
-      else if (initialBoard[r][c] === MOON) row.push([MOON]);
-      else row.push([SUN, MOON]);
-    }
-    grid.push(row);
-  }
+  const grid = mapGrid(initialBoard, val => (val === SUN || val === MOON ? [val] : [SUN, MOON]));
 
   function setDomain(r, c, d) {
     if (d.length === 0) return INVALID;
@@ -33,7 +32,7 @@ export function solve(initialBoard, markers) {
     }
     return false; // not changed
   }
-  
+
   function removeValue(r, c, val) {
     const d = grid[r][c];
     if (d.length === 2) {
@@ -43,131 +42,107 @@ export function solve(initialBoard, markers) {
     if (d.length === 1 && d[0] === val) return setDomain(r, c, []); // invalid!
     return false;
   }
-  
+
   const markerLookup = {};
+  const link = (from, to, type) => {
+    const key = `${from.r},${from.c}`;
+    if (!markerLookup[key]) markerLookup[key] = [];
+    markerLookup[key].push({ r: to.r, c: to.c, type });
+  };
   for (const m of markers) {
-    const k1 = `${m.r1},${m.c1}`;
-    const k2 = `${m.r2},${m.c2}`;
-    if (!markerLookup[k1]) markerLookup[k1] = [];
-    if (!markerLookup[k2]) markerLookup[k2] = [];
-    markerLookup[k1].push({ r: m.r2, c: m.c2, type: m.type });
-    markerLookup[k2].push({ r: m.r1, c: m.c1, type: m.type });
+    const a = { r: m.r1, c: m.c1 };
+    const b = { r: m.r2, c: m.c2 };
+    link(a, b, m.type);
+    link(b, a, m.type);
+  }
+
+  // Row and column views over the same grid, so line rules run once per line.
+  const lines = [];
+  for (let i = 0; i < SIZE; i++) {
+    lines.push({ read: c => grid[i][c], write: (c, d) => setDomain(i, c, d) });
+    lines.push({ read: r => grid[r][i], write: (r, d) => setDomain(r, i, d) });
   }
 
   let changed = true;
   while (changed) {
     changed = false;
-    
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const domain = grid[r][c];
-        if (domain.length === 0) return INVALID;
-        
-        if (domain.length === 1) {
-          const val = domain[0];
-          const opp = val === SUN ? MOON : SUN;
-          const k = `${r},${c}`;
-          if (markerLookup[k]) {
-            for (const neighbor of markerLookup[k]) {
-              const res = removeValue(neighbor.r, neighbor.c, neighbor.type === '=' ? opp : val);
-              if (res === INVALID) return INVALID;
-              if (res) changed = true;
-            }
-          }
+    const track = res => {
+      if (res === INVALID) return true;
+      if (res) changed = true;
+      return false;
+    };
+
+    let invalid = false;
+    forEachCell((r, c) => {
+      if (invalid) return;
+      const domain = grid[r][c];
+      if (domain.length === 0) {
+        invalid = true;
+        return;
+      }
+      if (domain.length !== 1) return;
+
+      const val = domain[0];
+      for (const neighbor of markerLookup[`${r},${c}`] || []) {
+        const forbidden = neighbor.type === MARKER_EQUAL ? opposite(val) : val;
+        if (track(removeValue(neighbor.r, neighbor.c, forbidden))) {
+          invalid = true;
+          return;
         }
       }
-    }
-    
-    for (let i = 0; i < SIZE; i++) {
-      let resRow = solveLine(
-        [0,1,2,3,4,5].map(c => grid[i][c]),
-        (c, newDomain) => setDomain(i, c, newDomain)
-      );
-      if (resRow === INVALID) return INVALID;
-      if (resRow) changed = true;
-      
-      let resCol = solveLine(
-        [0,1,2,3,4,5].map(r => grid[r][i]),
-        (r, newDomain) => setDomain(r, i, newDomain)
-      );
-      if (resCol === INVALID) return INVALID;
-      if (resCol) changed = true;
+    });
+    if (invalid) return INVALID;
+
+    for (const line of lines) {
+      if (track(solveLine(INDICES.map(line.read), line.write))) return INVALID;
     }
   }
 
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      if (grid[r][c].length !== 1) return STUCK;
-    }
-  }
-  
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      initialBoard[r][c] = grid[r][c][0];
-    }
-  }
-  
+  if (!everyCell((r, c) => grid[r][c].length === 1)) return STUCK;
+
+  forEachCell((r, c) => {
+    initialBoard[r][c] = grid[r][c][0];
+  });
+
   return SOLVED;
 }
 
 function solveLine(domains, updateCb) {
   let changed = false;
-  let suns = 0, moons = 0;
+  const track = res => {
+    if (res === INVALID) return true;
+    if (res) changed = true;
+    return false;
+  };
+
+  const counts = { [SUN]: 0, [MOON]: 0 };
   for (const d of domains) {
-    if (d.length === 1) {
-      if (d[0] === SUN) suns++;
-      else moons++;
+    if (d.length === 1) counts[d[0]]++;
+  }
+  if (counts[SUN] > HALF || counts[MOON] > HALF) return INVALID;
+
+  for (const val of [SUN, MOON]) {
+    if (counts[val] !== HALF) continue;
+    for (let i = 0; i < SIZE; i++) {
+      if (domains[i].length === 2 && track(updateCb(i, [opposite(val)]))) return INVALID;
     }
   }
-  if (suns > 3 || moons > 3) return INVALID;
-  if (suns === 3) {
-    for (let i = 0; i < 6; i++) {
-      if (domains[i].length === 2) {
-        let res = updateCb(i, [MOON]);
-        if (res === INVALID) return INVALID;
-        if (res) changed = true;
-      }
+
+  for (let i = 0; i < SIZE; i++) {
+    if (domains[i].length !== 1) continue;
+    const val = domains[i][0];
+
+    for (const [partnerOffset, targetOffset] of TRIPLET_RULES) {
+      const partner = i + partnerOffset;
+      const target = i + targetOffset;
+      if (!inLine(partner) || !inLine(target)) continue;
+      if (domains[partner].length !== 1 || domains[partner][0] !== val) continue;
+      if (!domains[target].includes(val)) continue;
+
+      const pruned = domains[target].filter(x => x !== val);
+      if (track(updateCb(target, pruned))) return INVALID;
     }
   }
-  if (moons === 3) {
-    for (let i = 0; i < 6; i++) {
-      if (domains[i].length === 2) {
-        let res = updateCb(i, [SUN]);
-        if (res === INVALID) return INVALID;
-        if (res) changed = true;
-      }
-    }
-  }
-  
-  for (let i = 0; i < 6; i++) {
-    const d = domains[i];
-    if (d.length === 1) {
-      const val = d[0];
-      if (i < 4 && domains[i+1].length === 1 && domains[i+1][0] === val) {
-        if (domains[i+2].includes(val)) {
-          let newD = domains[i+2].filter(x => x !== val);
-          let res = updateCb(i+2, newD);
-          if (res === INVALID) return INVALID;
-          if (res) changed = true;
-        }
-      }
-      if (i > 1 && domains[i-1].length === 1 && domains[i-1][0] === val) {
-        if (domains[i-2].includes(val)) {
-          let newD = domains[i-2].filter(x => x !== val);
-          let res = updateCb(i-2, newD);
-          if (res === INVALID) return INVALID;
-          if (res) changed = true;
-        }
-      }
-      if (i < 4 && domains[i+2].length === 1 && domains[i+2][0] === val) {
-        if (domains[i+1].includes(val)) {
-          let newD = domains[i+1].filter(x => x !== val);
-          let res = updateCb(i+1, newD);
-          if (res === INVALID) return INVALID;
-          if (res) changed = true;
-        }
-      }
-    }
-  }
+
   return changed;
 }

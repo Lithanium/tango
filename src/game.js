@@ -1,5 +1,12 @@
 import { generateBoard } from './generator.js';
-import { SUN, MOON } from './solver.js';
+import { SUN, MOON, EMPTY } from './constants.js';
+import { cloneGrid, mapGrid, everyCell } from './grid.js';
+
+const CYCLE = { [EMPTY]: SUN, [SUN]: MOON, [MOON]: EMPTY };
+
+function nextValue(val) {
+  return CYCLE[val];
+}
 
 export class Game {
   constructor(ui) {
@@ -20,10 +27,10 @@ export class Game {
       // timeout to let UI update before heavy generation
       setTimeout(() => {
         const data = generateBoard(difficulty);
-        this.board = data.initialBoard.map(row => [...row]);
+        this.board = cloneGrid(data.initialBoard);
         this.solution = data.solution;
         this.markers = data.markers;
-        this.fixed = data.initialBoard.map(row => row.map(v => v !== null));
+        this.fixed = mapGrid(data.initialBoard, v => v !== EMPTY);
         this.isFinished = false;
         
         this.resetTimer();
@@ -43,10 +50,7 @@ export class Game {
     if (this.isFinished) return;
     if (this.fixed[r][c]) return;
     
-    let val = this.board[r][c];
-    if (val === null) val = SUN;
-    else if (val === SUN) val = MOON;
-    else if (val === MOON) val = null;
+    const val = nextValue(this.board[r][c]);
     
     this.board[r][c] = val;
     this.ui.updateCell(r, c, val);
@@ -55,11 +59,7 @@ export class Game {
   }
 
   checkWin() {
-    for (let r = 0; r < 6; r++) {
-      for (let c = 0; c < 6; c++) {
-        if (this.board[r][c] !== this.solution[r][c]) return;
-      }
-    }
+    if (!everyCell((r, c) => this.board[r][c] === this.solution[r][c])) return;
     
     this.isFinished = true;
     this.stopTimer();

@@ -1,13 +1,12 @@
-import { SUN, MOON, solve, SOLVED } from './solver.js';
+import { SIZE, HALF, SUN, MOON, MARKER_EQUAL, MARKER_OPPOSITE, SOLVED } from './constants.js';
+import { solve } from './solver.js';
+import { createGrid, cloneGrid, forEachCell, allCells, shuffle } from './grid.js';
 
-const SIZE = 6;
-
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
+const PREFILLED_BY_DIFFICULTY = {
+  easy: 4,
+  medium: 2,
+  hard: 1, // must be >= 1, else sun/moon swap breaks uniqueness
+};
 
 export function generateBoard(difficulty = 'medium') {
   let solution;
@@ -20,44 +19,32 @@ export function generateBoard(difficulty = 'medium') {
     if (!solution) continue;
     
     const pairs = [];
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if (c < SIZE - 1) pairs.push({ r1: r, c1: c, r2: r, c2: c + 1 });
-        if (r < SIZE - 1) pairs.push({ r1: r, c1: c, r2: r + 1, c2: c });
-      }
-    }
+    forEachCell((r, c) => {
+      if (c < SIZE - 1) pairs.push({ r1: r, c1: c, r2: r, c2: c + 1 });
+      if (r < SIZE - 1) pairs.push({ r1: r, c1: c, r2: r + 1, c2: c });
+    });
     shuffle(pairs);
     
     markers = [];
     
-    let targetPrefilled = 0;
-    if (difficulty === 'easy') targetPrefilled = 4;
-    else if (difficulty === 'medium') targetPrefilled = 2;
-    else targetPrefilled = 1; // hard — must be >= 1, else sun/moon swap breaks uniqueness
+    const targetPrefilled = PREFILLED_BY_DIFFICULTY[difficulty] ?? PREFILLED_BY_DIFFICULTY.hard;
     
-    initialBoard = Array(SIZE).fill(null).map(() => Array(SIZE).fill(null));
+    initialBoard = createGrid();
     
-    if (targetPrefilled > 0) {
-      let cells = [];
-      for (let r = 0; r < SIZE; r++) {
-        for (let c = 0; c < SIZE; c++) {
-          cells.push({r, c});
-        }
-      }
-      shuffle(cells);
-      for (let i = 0; i < targetPrefilled; i++) {
-        const {r, c} = cells[i];
-        initialBoard[r][c] = solution[r][c];
-      }
+    const cells = shuffle(allCells());
+    for (let i = 0; i < targetPrefilled; i++) {
+      const { r, c } = cells[i];
+      initialBoard[r][c] = solution[r][c];
     }
     
     let isSolvable = false;
     for (const pair of pairs) {
-      const type = solution[pair.r1][pair.c1] === solution[pair.r2][pair.c2] ? '=' : 'x';
+      const type = solution[pair.r1][pair.c1] === solution[pair.r2][pair.c2]
+        ? MARKER_EQUAL
+        : MARKER_OPPOSITE;
       markers.push({ ...pair, type });
       
-      let testBoard = initialBoard.map(row => [...row]);
-      if (solve(testBoard, markers) === SOLVED) {
+      if (isSolvedBy(initialBoard, markers)) {
         isSolvable = true;
         break;
       }
@@ -71,9 +58,7 @@ export function generateBoard(difficulty = 'medium') {
       const minimizePasses = difficulty === 'hard' ? 8 : 1;
       let bestMarkers = minimizeMarkers(markers, initialBoard);
       for (let p = 1; p < minimizePasses; p++) {
-        const shuffled = [...markers];
-        shuffle(shuffled);
-        const candidate = minimizeMarkers(shuffled, initialBoard);
+        const candidate = minimizeMarkers(shuffle([...markers]), initialBoard);
         if (candidate.length < bestMarkers.length) {
           bestMarkers = candidate;
         }
@@ -86,13 +71,17 @@ export function generateBoard(difficulty = 'medium') {
   throw new Error("Failed to generate a solvable board");
 }
 
+// solve() mutates the board it is given, so always probe on a copy.
+function isSolvedBy(board, markers) {
+  return solve(cloneGrid(board), markers) === SOLVED;
+}
+
 function minimizeMarkers(markers, initialBoard) {
   const result = [...markers];
   for (let i = result.length - 1; i >= 0; i--) {
     const temp = result[i];
     result.splice(i, 1);
-    const testBoard = initialBoard.map(row => [...row]);
-    if (solve(testBoard, result) !== SOLVED) {
+    if (!isSolvedBy(initialBoard, result)) {
       result.splice(i, 0, temp); // put it back
     }
   }
@@ -100,28 +89,12 @@ function minimizeMarkers(markers, initialBoard) {
 }
 
 function generateCompleteBoard() {
-  const grid = Array(SIZE).fill(null).map(() => Array(SIZE).fill(null));
+  const grid = createGrid();
   
   function isValidPrefix(r, c, val) {
     grid[r][c] = val;
     
-    let valid = true;
-    
-    let suns = 0, moons = 0;
-    for (let i = 0; i <= c; i++) {
-      if (grid[r][i] === SUN) suns++;
-      else moons++;
-      if (i >= 2 && grid[r][i] === grid[r][i-1] && grid[r][i] === grid[r][i-2]) valid = false;
-    }
-    if (suns > 3 || moons > 3) valid = false;
-    
-    suns = 0; moons = 0;
-    for (let i = 0; i <= r; i++) {
-      if (grid[i][c] === SUN) suns++;
-      else moons++;
-      if (i >= 2 && grid[i][c] === grid[i-1][c] && grid[i][c] === grid[i-2][c]) valid = false;
-    }
-    if (suns > 3 || moons > 3) valid = false;
+    const valid = isValidLinePrefix(i => grid[r][i], c) && isValidLinePrefix(i => grid[i][c], r);
     
     grid[r][c] = null;
     return valid;
@@ -132,10 +105,7 @@ function generateCompleteBoard() {
     const r = Math.floor(idx / SIZE);
     const c = idx % SIZE;
     
-    const options = [SUN, MOON];
-    shuffle(options);
-    
-    for (const val of options) {
+    for (const val of shuffle([SUN, MOON])) {
       if (isValidPrefix(r, c, val)) {
         grid[r][c] = val;
         if (backtrack(idx + 1)) return true;
@@ -147,4 +117,16 @@ function generateCompleteBoard() {
   
   if (backtrack(0)) return grid;
   return null;
+}
+
+// Checks balance and no-triplet rules over the filled prefix [0..last] of a line.
+function isValidLinePrefix(read, last) {
+  let suns = 0;
+  let moons = 0;
+  for (let i = 0; i <= last; i++) {
+    if (read(i) === SUN) suns++;
+    else moons++;
+    if (i >= 2 && read(i) === read(i - 1) && read(i) === read(i - 2)) return false;
+  }
+  return suns <= HALF && moons <= HALF;
 }
