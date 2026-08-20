@@ -15,10 +15,10 @@ export class Game {
   }
 
   newGame(difficulty = 'medium') {
-    try {
-      this.ui.showLoading(true);
-      // timeout to let UI update before heavy generation
-      setTimeout(() => {
+    this.ui.showLoading(true);
+    // timeout to let UI update before heavy generation
+    setTimeout(() => {
+      try {
         const data = generateBoard(difficulty);
         this.board = data.initialBoard.map(row => [...row]);
         this.solution = data.solution;
@@ -31,12 +31,12 @@ export class Game {
         
         this.ui.showLoading(false);
         this.ui.renderBoard(this);
-      }, 50);
-    } catch (e) {
-      console.error(e);
-      alert("Failed to generate board. Please try again.");
-      this.ui.showLoading(false);
-    }
+      } catch (e) {
+        console.error(e);
+        this.ui.showLoading(false);
+        alert("Failed to generate board. Please try again.");
+      }
+    }, 50);
   }
 
   toggleCell(r, c) {
