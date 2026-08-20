@@ -11,6 +11,8 @@ import {
 } from './constants.js';
 import { mapGrid, forEachCell, everyCell } from './grid.js';
 
+export { SUN, MOON, EMPTY, MARKER_EQUAL, MARKER_OPPOSITE, SOLVED, STUCK, INVALID } from './constants.js';
+
 const INDICES = [...Array(SIZE).keys()];
 
 // [partner offset, target offset]: a singleton next to an identical partner

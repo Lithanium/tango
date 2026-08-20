@@ -22,6 +22,8 @@ export class UI {
   constructor(containerId, timerId) {
     this.container = document.getElementById(containerId);
     this.timerEl = document.getElementById(timerId);
+    if (!this.container) throw new Error(`UI: element "${containerId}" not found`);
+    if (!this.timerEl) throw new Error(`UI: element "${timerId}" not found`);
     this.game = null;
   }
 
@@ -36,6 +38,9 @@ export class UI {
       if (banner) {
         banner.classList.remove('show');
       }
+    } else {
+      const loading = this.container.querySelector('.loading');
+      if (loading) loading.remove();
     }
   }
 
@@ -82,7 +87,10 @@ export class UI {
 
   updateCell(r, c, val) {
     const cell = document.getElementById(cellId(r, c));
-    if (!cell) return;
+    if (!cell) {
+      console.warn(`UI.updateCell: cell (${r}, ${c}) not found in DOM`);
+      return;
+    }
     
     paintCell(cell, val);
   }
