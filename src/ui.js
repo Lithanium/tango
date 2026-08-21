@@ -1,7 +1,22 @@
-import { SUN, MOON } from './solver.js';
+import { SUN, MOON, SIZE, MARKER_EQUAL } from './constants.js';
+import { forEachCell } from './grid.js';
 
 const SUN_SVG = `<svg viewBox="0 0 100 100" class="icon sun-icon"><circle cx="50" cy="50" r="32" fill="#fca11a" stroke="#d57018" stroke-width="6" /></svg>`;
 const MOON_SVG = `<svg viewBox="0 0 28 28" class="icon moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="Moon"><path d="M8.10583 19.9024C15.2282 18.6466 19.2619 11.9868 17.0757 5.09295C16.8785 4.47115 16.6376 3.86915 16.3574 3.28957C16.3507 3.27584 16.3467 3.26256 16.3446 3.24986C20.5748 4.17473 24.0337 7.5648 24.8316 12.0899C25.8865 18.0727 21.8917 23.778 15.9088 24.8329C11.4675 25.616 7.17692 23.6165 4.82974 20.0826C4.84051 20.0805 4.85231 20.0796 4.86526 20.0804C5.93904 20.1476 7.02621 20.0928 8.10583 19.9024Z" fill="#4a7feb" stroke="#1f5bb7" stroke-width="2" stroke-linejoin="round"/></svg>`;
+
+const ICONS = { [SUN]: SUN_SVG, [MOON]: MOON_SVG };
+const VALUE_CLASSES = { [SUN]: 'sun', [MOON]: 'moon' };
+
+// Percentage offset of a grid coordinate, used to place markers between cells.
+const pct = coord => `${coord * 100 / SIZE}%`;
+
+const cellId = (r, c) => `cell-${r}-${c}`;
+
+function paintCell(cell, val) {
+  cell.classList.remove(...Object.values(VALUE_CLASSES));
+  if (VALUE_CLASSES[val]) cell.classList.add(VALUE_CLASSES[val]);
+  cell.innerHTML = ICONS[val] || '';
+}
 
 export class UI {
   constructor(containerId, timerId) {
@@ -36,45 +51,33 @@ export class UI {
     const grid = document.createElement('div');
     grid.className = 'grid';
     
-    for (let r = 0; r < 6; r++) {
-      for (let c = 0; c < 6; c++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.dataset.r = r;
-        cell.dataset.c = c;
-        cell.id = `cell-${r}-${c}`;
-        
-        if (game.fixed[r][c]) {
-          cell.classList.add('fixed');
-        } else {
-          cell.addEventListener('click', () => this.game.toggleCell(r, c));
-        }
-        
-        const val = game.board[r][c];
-        if (val === SUN) {
-          cell.classList.add('sun');
-          cell.innerHTML = SUN_SVG;
-        } else if (val === MOON) {
-          cell.classList.add('moon');
-          cell.innerHTML = MOON_SVG;
-        }
-        
-        grid.appendChild(cell);
+    forEachCell((r, c) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      cell.id = cellId(r, c);
+      
+      if (game.fixed[r][c]) {
+        cell.classList.add('fixed');
+      } else {
+        cell.addEventListener('click', () => this.game.toggleCell(r, c));
       }
-    }
+      
+      paintCell(cell, game.board[r][c]);
+      
+      grid.appendChild(cell);
+    });
     
     game.markers.forEach(m => {
+      const isEqual = m.type === MARKER_EQUAL;
       const marker = document.createElement('div');
-      marker.className = `marker ${m.type === '=' ? 'equal' : 'opposite'}`;
-      marker.textContent = m.type === '=' ? '=' : '×';
+      marker.className = `marker ${isEqual ? 'equal' : 'opposite'}`;
+      marker.textContent = isEqual ? '=' : '×';
       
-      if (m.r1 === m.r2) {
-        marker.style.top = `${(m.r1 + 0.5) * 100 / 6}%`;
-        marker.style.left = `${(m.c1 + 1) * 100 / 6}%`;
-      } else {
-        marker.style.top = `${(m.r1 + 1) * 100 / 6}%`;
-        marker.style.left = `${(m.c1 + 0.5) * 100 / 6}%`;
-      }
+      const horizontal = m.r1 === m.r2;
+      marker.style.top = pct(m.r1 + (horizontal ? 0.5 : 1));
+      marker.style.left = pct(m.c1 + (horizontal ? 1 : 0.5));
       
       grid.appendChild(marker);
     });
@@ -83,22 +86,13 @@ export class UI {
   }
 
   updateCell(r, c, val) {
-    const cell = document.getElementById(`cell-${r}-${c}`);
+    const cell = document.getElementById(cellId(r, c));
     if (!cell) {
       console.warn(`UI.updateCell: cell (${r}, ${c}) not found in DOM`);
       return;
     }
     
-    cell.classList.remove('sun', 'moon');
-    if (val === SUN) {
-      cell.classList.add('sun');
-      cell.innerHTML = SUN_SVG;
-    } else if (val === MOON) {
-      cell.classList.add('moon');
-      cell.innerHTML = MOON_SVG;
-    } else {
-      cell.innerHTML = '';
-    }
+    paintCell(cell, val);
   }
 
   updateTimer(seconds) {
